@@ -3,10 +3,10 @@ name: Build Executables for To-Do App
 on:
   push:
     branches:
-      - main  # Trigger workflow on push to main
+      - main
   pull_request:
     branches:
-      - main  # Trigger workflow on pull requests to main
+      - main
 
 jobs:
   build:
@@ -17,12 +17,23 @@ jobs:
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v3  # Check out repository
+      uses: actions/checkout@v3
 
-    - name: Install Python dependencies
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+
+    - name: Create Virtual Environment
       run: |
-        python3 -m pip install --upgrade pip
-        python3 -m pip install pyinstaller
+        python3 -m venv venv
+        source venv/bin/activate  # Activate virtual environment (on Unix-based systems)
+        venv\Scripts\activate.bat  # For Windows systems
+
+    - name: Upgrade pip and Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install pyinstaller
 
     - name: Download RAR parts
       run: |
@@ -34,15 +45,26 @@ jobs:
     - name: Install unrar (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
-        sudo apt-get install -y unrar || brew install unrar
+        if [[ "$(uname)" == "Darwin" ]]; then
+          brew install unrar || true
+        else
+          sudo apt-get install -y unrar
+        fi
 
     - name: Extract RAR files
       run: |
         cd dist
         unrar x dist.part1.rar
 
+    - name: Verify extracted file
+      run: |
+        ls -l dist
+        file dist/todo.py
+
     - name: Build executable for ${{ matrix.os }}
       run: |
+        source venv/bin/activate  # Activate virtual environment (on Unix-based systems)
+        venv\Scripts\activate.bat  # For Windows systems
         if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
           pyinstaller --onefile --distpath dist/linux dist/todo.py
         elif [ "${{ matrix.os }}" == "macos-latest" ]; then
