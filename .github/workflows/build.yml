@@ -1,66 +1,60 @@
-name: Build and Upload Split Files
+name: Build Executables for To-Do App
 
 on:
   push:
     branches:
-      - main  # Trigger the workflow on pushes to the main branch
+      - main  # Trigger workflow on push to main
   pull_request:
     branches:
-      - main  # Trigger the workflow on PRs to the main branch
+      - main  # Trigger workflow on pull requests to main
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # This job will run on Ubuntu, modify this for other OS types
-
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]  # Runs on Linux, Windows, and macOS
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
     - name: Check out code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3  # Check out repository
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.8'  # Adjust Python version if necessary
-
-    - name: Install dependencies
+    - name: Install Python dependencies
       run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt  # Add your dependencies here
+        python3 -m pip install --upgrade pip
+        python3 -m pip install pyinstaller
 
-    - name: Create Executable (Windows, Linux, macOS)
+    - name: Download RAR parts
       run: |
-        if [[ "$RUNNER_OS" == "Linux" ]]; then
-          pyinstaller --onefile --distpath dist-linux todo.py
-        elif [[ "$RUNNER_OS" == "Windows" ]]; then
-          pyinstaller --onefile --distpath dist-win todo.py
-        elif [[ "$RUNNER_OS" == "macOS" ]]; then
-          pyinstaller --onefile --distpath dist-mac todo.py
-        fi
+        mkdir -p dist
+        curl -L -o dist/dist.part1.rar https://github.com/namant43fg/TODOAPP/raw/main/dist.part1.rar
+        curl -L -o dist/dist.part2.rar https://github.com/namant43fg/TODOAPP/raw/main/dist.part2.rar
+        curl -L -o dist/dist.part3.rar https://github.com/namant43fg/TODOAPP/raw/main/dist.part3.rar
 
-    - name: Create .rar Archive (split into 3 parts)
+    - name: Install unrar (Linux/macOS)
+      if: runner.os != 'Windows'
       run: |
-        if [[ "$RUNNER_OS" == "Linux" ]]; then
-          rar a -v100m dist-linux.rar dist-linux/todo  # Modify if necessary
-        elif [[ "$RUNNER_OS" == "Windows" ]]; then
-          rar a -v100m dist-win.rar dist-win/todo  # Modify if necessary
-        elif [[ "$RUNNER_OS" == "macOS" ]]; then
-          rar a -v100m dist-mac.rar dist-mac/todo  # Modify if necessary
-        fi
+        sudo apt-get install -y unrar || brew install unrar
 
-    - name: Upload the split .rar files
+    - name: Extract RAR files
+      run: |
+        cd dist
+        unrar x dist.part1.rar
+
+    - name: Build executable for ${{ matrix.os }}
+      run: |
+        if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
+          pyinstaller --onefile --distpath dist/linux dist/todo.py
+        elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+          pyinstaller --onefile --distpath dist/macos dist/todo.py
+        else
+          pyinstaller --onefile --distpath dist/windows dist/todo.py
+
+    - name: Upload executables
       uses: actions/upload-artifact@v3
       with:
-        name: todo-split-files
+        name: todo-${{ matrix.os }}
         path: |
-          dist-linux.rar.part1
-          dist-linux.rar.part2
-          dist-linux.rar.part3
-          dist-win.rar.part1
-          dist-win.rar.part2
-          dist-win.rar.part3
-          dist-mac.rar.part1
-          dist-mac.rar.part2
-          dist-mac.rar.part3
+          dist/linux/*
+          dist/macos/*
+          dist/windows/*
