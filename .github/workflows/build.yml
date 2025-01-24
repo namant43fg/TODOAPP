@@ -48,6 +48,7 @@ jobs:
         if [[ "$(uname)" == "Darwin" ]]; then
           brew install unrar || true
         else
+          sudo apt-get update
           sudo apt-get install -y unrar
         fi
 
