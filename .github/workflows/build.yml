@@ -38,7 +38,7 @@ jobs:
         pyinstaller --onefile --windowed todo.py
 
     - name: Upload executable as artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: executable-${{ runner.os }}
         path: dist/todo  # Path to the generated executable
