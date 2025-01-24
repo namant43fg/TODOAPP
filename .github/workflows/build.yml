@@ -27,11 +27,10 @@ jobs:
     - name: Create Virtual Environment
       run: |
         python3 -m venv venv
-        source venv/bin/activate  # Activate virtual environment (on Unix-based systems)
-        venv\Scripts\activate.bat  # For Windows systems
 
     - name: Upgrade pip and Install Dependencies
       run: |
+        source venv/bin/activate  # Activate virtual environment (on Unix-based systems)
         python -m pip install --upgrade pip
         python -m pip install pyinstaller
 
@@ -64,14 +63,12 @@ jobs:
 
     - name: Build executable for ${{ matrix.os }}
       run: |
-        source venv/bin/activate  # Activate virtual environment (on Unix-based systems)
-        venv\Scripts\activate.bat  # For Windows systems
-        if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-          pyinstaller --onefile --distpath dist/linux dist/todo.py
-        elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-          pyinstaller --onefile --distpath dist/macos dist/todo.py
+        if [ "${{ matrix.os }}" == "ubuntu-latest" ] || [ "${{ matrix.os }}" == "macos-latest" ]; then
+          source venv/bin/activate  # Activate virtual environment (on Unix-based systems)
         else
-          pyinstaller --onefile --distpath dist/windows dist/todo.py
+          venv\Scripts\activate.bat  # For Windows systems
+        fi
+        pyinstaller --onefile --distpath dist/${{ matrix.os }} dist/todo.py
 
     - name: Upload executables
       uses: actions/upload-artifact@v3
