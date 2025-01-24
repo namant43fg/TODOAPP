@@ -35,10 +35,10 @@ jobs:
 
     - name: Build executable for ${{ runner.os }}
       run: |
-        pyinstaller --onefile --windowed your_script.py
+        pyinstaller --onefile --windowed todo.py
 
     - name: Upload executable as artifact
       uses: actions/upload-artifact@v2
       with:
         name: executable-${{ runner.os }}
-        path: dist/your_script  # Path to the generated executable
+        path: dist/todo  # Path to the generated executable
