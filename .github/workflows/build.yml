@@ -1,4 +1,4 @@
-name: Build Executables
+name: Build and Upload Split Files
 
 on:
   push:
@@ -10,11 +10,12 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest  # This job will run on Ubuntu, modify this for other OS types
+
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    
+        os: [ubuntu-latest, windows-latest, macos-latest]  # Runs on Linux, Windows, and macOS
+
     steps:
     - name: Check out code
       uses: actions/checkout@v2
@@ -22,23 +23,44 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.8  # Use the version you need (e.g., 3.8, 3.9, etc.)
+        python-version: '3.8'  # Adjust Python version if necessary
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller
+        pip install -r requirements.txt  # Add your dependencies here
 
-    - name: Install additional dependencies (Linux only)
-      if: runner.os == 'Linux'
-      run: sudo apt-get install -y libgtk-3-0
-
-    - name: Build executable for ${{ runner.os }}
+    - name: Create Executable (Windows, Linux, macOS)
       run: |
-        pyinstaller --onefile --windowed todo.py
+        if [[ "$RUNNER_OS" == "Linux" ]]; then
+          pyinstaller --onefile --distpath dist-linux todo.py
+        elif [[ "$RUNNER_OS" == "Windows" ]]; then
+          pyinstaller --onefile --distpath dist-win todo.py
+        elif [[ "$RUNNER_OS" == "macOS" ]]; then
+          pyinstaller --onefile --distpath dist-mac todo.py
+        fi
 
-    - name: Upload executable as artifact
+    - name: Create .rar Archive (split into 3 parts)
+      run: |
+        if [[ "$RUNNER_OS" == "Linux" ]]; then
+          rar a -v100m dist-linux.rar dist-linux/todo  # Modify if necessary
+        elif [[ "$RUNNER_OS" == "Windows" ]]; then
+          rar a -v100m dist-win.rar dist-win/todo  # Modify if necessary
+        elif [[ "$RUNNER_OS" == "macOS" ]]; then
+          rar a -v100m dist-mac.rar dist-mac/todo  # Modify if necessary
+        fi
+
+    - name: Upload the split .rar files
       uses: actions/upload-artifact@v3
       with:
-        name: executable-${{ runner.os }}
-        path: dist/todo  # Path to the generated executable
+        name: todo-split-files
+        path: |
+          dist-linux.rar.part1
+          dist-linux.rar.part2
+          dist-linux.rar.part3
+          dist-win.rar.part1
+          dist-win.rar.part2
+          dist-win.rar.part3
+          dist-mac.rar.part1
+          dist-mac.rar.part2
+          dist-mac.rar.part3
