@@ -8,6 +8,7 @@ on:
     branches:
       - main
 
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -26,7 +27,7 @@ jobs:
 
     - name: Create Virtual Environment
       run: |
-        if [[ "${{ runner.os }}" == "Windows" ]]; then
+        if [ "${{ runner.os }}" == "Windows" ]; then
           python -m venv venv
         else
           python3 -m venv venv
@@ -86,3 +87,4 @@ jobs:
           dist/linux/*
           dist/macos/*
           dist/windows/*
+
